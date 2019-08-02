@@ -32,9 +32,6 @@ while [ "$1" != "" ]; do
         --force)
             DO_FORCED=true
             ;;
-        --latest)
-            IS_LATEST=true
-            ;;
         *)
             if [[ "$PARAM" == *"Dockerfile"* ]] || [ -d "$PARAM" ]; then
                 DOCKERFILE=$PARAM
@@ -79,7 +76,6 @@ parse_dockerfile()
     FROMVERSION=$(cut -d ":" -f 2 <<< "$FROMVERSION")
     FROMVERSION_LONG=$(sed 's/-.*//' <<< "$FROMVERSION") # 1.2.3
     FROMVERSION_MEDIUM=$(sed 's/\(.*\)\..*/\1/' <<< "$FROMVERSION_LONG") # 1.2
-    FROMVERSION_SHORT=$(sed 's/\(.*\)\..*/\1/' <<< "$FROMVERSION_MEDIUM") # 1
 
     # determine the tag specifics (fpm-development etc.)
     TYPE=$(cut -d/ -f$((${SLASHCOUNT}+1)) <<< "${DOCKERFILE}")
@@ -96,18 +92,10 @@ parse_dockerfile()
     # create first tag (full)
     TAG_LONG="${FROMVERSION_LONG}${TYPE}"
     TAG_MEDIUM="${FROMVERSION_MEDIUM}${TYPE}"
-    TAG_SHORT="${FROMVERSION_SHORT}${TYPE}"
-
-    TAG_LATEST=""
-    if [[ "${TYPE}" = "" ]]; then
-        TAG_LATEST="${IMAGENAME}:latest"
-    fi
 
     # create full image names
     FULL_LONG="${IMAGENAME}:${TAG_LONG}"
     FULL_MEDIUM="${IMAGENAME}:${TAG_MEDIUM}"
-    FULL_SHORT="${IMAGENAME}:${TAG_SHORT}"
-    FULL_LATEST="${IMAGENAME}:${TAG_LATEST}"
 
     echo "Preparing ${FULL_LONG} ..."
 
@@ -123,42 +111,17 @@ parse_dockerfile()
             sed -i "s/FROM bertoost/FROM ${DOCKER_USERNAME}/g" ${DOCKERFILE_RELATIVE}.working
 
             # build working file
-            if [[ "$IS_LATEST" = true ]]; then
-                if [[ "${TAG_LATEST}" != "" ]]; then
-                    docker build -f "${DOCKERFILE_RELATIVE}.working" -t "${FULL_LONG}" -t "${FULL_MEDIUM}" -t "${FULL_SHORT}" -t "${FULL_LATEST}" .
-                else
-                    docker build -f "${DOCKERFILE_RELATIVE}.working" -t "${FULL_LONG}" -t "${FULL_MEDIUM}" -t "${FULL_SHORT}" .
-                fi
-            else
-                docker build -f "${DOCKERFILE_RELATIVE}.working" -t "${FULL_LONG}" -t "${FULL_MEDIUM}" .
-            fi
+            docker build -f "${DOCKERFILE_RELATIVE}.working" -t "${FULL_LONG}" -t "${FULL_MEDIUM}" .
 
             rm -f ${DOCKERFILE_RELATIVE}.working;
         else
-            # build docker file
-            if [[ "$IS_LATEST" = true ]]; then
-                if [[ "${TAG_LATEST}" != "" ]]; then
-                    docker build -f "${DOCKERFILE_RELATIVE}" -t "${FULL_LONG}" -t "${FULL_MEDIUM}" -t "${FULL_SHORT}" -t "${FULL_LATEST}" .
-                else
-                    docker build -f "${DOCKERFILE_RELATIVE}" -t "${FULL_LONG}" -t "${FULL_MEDIUM}" -t "${FULL_SHORT}" .
-                fi
-            else
-                docker build -f "${DOCKERFILE_RELATIVE}" -t "${FULL_LONG}" -t "${FULL_MEDIUM}" .
-            fi
+            docker build -f "${DOCKERFILE_RELATIVE}" -t "${FULL_LONG}" -t "${FULL_MEDIUM}" .
         fi
     fi
 
     if [[ "$DO_PUSH" = true ]]; then
         docker push "${FULL_LONG}"
         docker push "${FULL_MEDIUM}"
-
-        if [[ "$IS_LATEST" = true ]]; then
-            docker push "${FULL_SHORT}"
-
-            if [[ "${FULL_LATEST}" != "" ]]; then
-                docker push "${FULL_LATEST}"
-            fi
-        fi
     fi
 
     cd ${EXECUTEDIR}
