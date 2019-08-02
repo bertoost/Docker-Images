@@ -1,0 +1,7 @@
+.idea/
+
+/.env
+/**/*.working
+/mysql/**/custom/*
+
+!.gitkeep

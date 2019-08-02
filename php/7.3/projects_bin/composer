@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+test -t 1 && USE_TTY="-it"
+docker exec ${USE_TTY} CONTAINER_ID bash -c "\/home\/php\/composer.sh $*"
