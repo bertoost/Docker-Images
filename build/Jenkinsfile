@@ -59,46 +59,19 @@ pipeline {
                             return CHANGED_FILES.contains('php/')
                         }
                     }
-                    failFast true
-                    parallel {
-                        stage('v7.1') {
-                            when {
-                                expression {
-                                    return CHANGED_FILES.contains('php/7.1')
-                                }
+                    steps {
+                        script {
+                            if (CHANGED_FILES.contains('php/7.1')) {
+                                sh script: 'build.sh php/7.1 --build --force', label: 'Build image for PHP 7.1'
+                                sh script: 'build.sh php/7.1 --push --force', label: 'Push image for PHP 7.1'
                             }
-                            steps {
-                                script {
-                                    sh script: 'build.sh php/7.1 --build --force', label: 'Build image for PHP 7.1'
-                                    sh script: 'build.sh php/7.1 --push --force', label: 'Push image for PHP 7.1'
-                                }
+                            if (CHANGED_FILES.contains('php/7.2')) {
+                                sh script: 'build.sh php/7.2 --build --force', label: 'Build image for PHP 7.2'
+                                sh script: 'build.sh php/7.2 --push --force', label: 'Push image for PHP 7.2'
                             }
-                        }
-
-                        stage('v7.2') {
-                            when {
-                                expression {
-                                    return CHANGED_FILES.contains('php/7.2')
-                                }
-                            }
-                            steps {
-                                script {
-                                    sh script: 'build.sh php/7.2 --build --force', label: 'Build image for PHP 7.2'
-                                    sh script: 'build.sh php/7.2 --push --force', label: 'Push image for PHP 7.2'
-                                }
-                            }
-                        }
-                        stage('v7.3') {
-                            when {
-                                expression {
-                                    return CHANGED_FILES.contains('php/7.3')
-                                }
-                            }
-                            steps {
-                                script {
-                                    sh script: 'build.sh php/7.3 --build --force', label: 'Build image for PHP 7.3'
-                                    sh script: 'build.sh php/7.3 --push --force', label: 'Push image for PHP 7.3'
-                                }
+                            if (CHANGED_FILES.contains('php/7.3')) {
+                                sh script: 'build.sh php/7.3 --build --force', label: 'Build image for PHP 7.3'
+                                sh script: 'build.sh php/7.3 --push --force', label: 'Push image for PHP 7.3'
                             }
                         }
                     }
@@ -110,33 +83,15 @@ pipeline {
                             return CHANGED_FILES.contains('mysql/')
                         }
                     }
-                    failFast true
-                    parallel {
-                        stage('v5.7') {
-                            when {
-                                expression {
-                                    return CHANGED_FILES.contains('mysql/5.7')
-                                }
+                    steps {
+                        script {
+                            if (CHANGED_FILES.contains('mysql/5.7')) {
+                                sh script: 'build.sh mysql/5.7 --build --force', label: 'Build image for MySQL 5.7'
+                                sh script: 'build.sh mysql/5.7 --push --force', label: 'Push image for MySQL 5.7'
                             }
-                            steps {
-                                script {
-                                    sh script: 'build.sh mysql/5.7 --build --force', label: 'Build image for MySQL 5.7'
-                                    sh script: 'build.sh mysql/5.7 --push --force', label: 'Push image for MySQL 5.7'
-                                }
-                            }
-                        }
-
-                        stage('v8.0') {
-                            when {
-                                expression {
-                                    return CHANGED_FILES.contains('mysql/8.0')
-                                }
-                            }
-                            steps {
-                                script {
-                                    sh script: 'build.sh mysql/8.0 --build --force', label: 'Build image for MySQL 8.0'
-                                    sh script: 'build.sh mysql/8.0 --push --force', label: 'Push image for MySQL 8.0'
-                                }
+                            if (CHANGED_FILES.contains('mysql/8.0')) {
+                                sh script: 'build.sh mysql/8.0 --build --force', label: 'Build image for MySQL 8.0'
+                                sh script: 'build.sh mysql/8.0 --push --force', label: 'Push image for MySQL 8.0'
                             }
                         }
                     }
