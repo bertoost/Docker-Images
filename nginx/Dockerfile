@@ -1,4 +1,4 @@
-FROM nginx:1.15.9-alpine
+FROM nginx:1.17.2-alpine
 
 LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
