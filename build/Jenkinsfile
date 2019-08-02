@@ -1,0 +1,147 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Prepare') {
+            when {
+                branch 'master'
+            }
+            steps {
+                script {
+                    // define Docker Hub variables
+                    withCredentials([usernamePassword(credentialsId: env.DOCKER_HUB_CREDENTIALS_ID, passwordVariable: 'password', usernameVariable: 'username')]) {
+                        DOCKER_USERNAME = $username
+                        DOCKER_PASSWORD = $password
+
+                        sh script: 'echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin', label: 'Login to Docker Hub'
+                    }
+
+                    // get a list of changed files
+                    CHANGED_FILES = null
+                    for (changeLogSet in currentBuild.changeSets) {
+                        for (entry in changeLogSet.getItems()) { // for each commit in the detected changes
+                            for (file in entry.getAffectedFiles()) {
+                                 // CHANGED_FILES.add(file.getPath()) // add changed file to list
+                                if (CHANGED_FILES) {
+                                    CHANGED_FILES = "${CHANGED_FILES},${file.getPath()}"
+                                } else {
+                                    CHANGED_FILES = "${file.getPath()}"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build & Push') {
+            when {
+                branch 'master'
+            }
+            failFast true
+            parallel {
+                stage('NginX') {
+                    when {
+                        expression {
+                            return CHANGED_FILES.contains('nginx/')
+                        }
+                    }
+                    steps {
+                        script {
+                            sh script: 'build.sh nginx --build --force', label: 'Build images for NginX'
+                            sh script: 'build.sh nginx --push --force', label: 'Push images for NginX'
+                        }
+                    }
+                }
+                stage('PHP') {
+                    when {
+                        expression {
+                            return CHANGED_FILES.contains('php/')
+                        }
+                    }
+                    failFast true
+                    parallel {
+                        stage('v7.1') {
+                            when {
+                                expression {
+                                    return CHANGED_FILES.contains('php/7.1')
+                                }
+                            }
+                            steps {
+                                script {
+                                    sh script: 'build.sh php/7.1 --build --force', label: 'Build image for PHP 7.1'
+                                    sh script: 'build.sh php/7.1 --push --force', label: 'Push image for PHP 7.1'
+                                }
+                            }
+                        }
+
+                        stage('v7.2') {
+                            when {
+                                expression {
+                                    return CHANGED_FILES.contains('php/7.2')
+                                }
+                            }
+                            steps {
+                                script {
+                                    sh script: 'build.sh php/7.2 --build --force', label: 'Build image for PHP 7.2'
+                                    sh script: 'build.sh php/7.2 --push --force', label: 'Push image for PHP 7.2'
+                                }
+                            }
+                        }
+                        stage('v7.3') {
+                            when {
+                                expression {
+                                    return CHANGED_FILES.contains('php/7.3')
+                                }
+                            }
+                            steps {
+                                script {
+                                    sh script: 'build.sh php/7.3 --build --force', label: 'Build image for PHP 7.3'
+                                    sh script: 'build.sh php/7.3 --push --force', label: 'Push image for PHP 7.3'
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('MySQL') {
+                    when {
+                        expression {
+                            return CHANGED_FILES.contains('mysql/')
+                        }
+                    }
+                    failFast true
+                    parallel {
+                        stage('v5.7') {
+                            when {
+                                expression {
+                                    return CHANGED_FILES.contains('mysql/5.7')
+                                }
+                            }
+                            steps {
+                                script {
+                                    sh script: 'build.sh mysql/5.7 --build --force', label: 'Build image for MySQL 5.7'
+                                    sh script: 'build.sh mysql/5.7 --push --force', label: 'Push image for MySQL 5.7'
+                                }
+                            }
+                        }
+
+                        stage('v8.0') {
+                            when {
+                                expression {
+                                    return CHANGED_FILES.contains('mysql/8.0')
+                                }
+                            }
+                            steps {
+                                script {
+                                    sh script: 'build.sh mysql/8.0 --build --force', label: 'Build image for MySQL 8.0'
+                                    sh script: 'build.sh mysql/8.0 --push --force', label: 'Push image for MySQL 8.0'
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
