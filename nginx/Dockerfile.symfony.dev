@@ -1,4 +1,4 @@
-FROM bertoost/nginx:1.17.3-symfony
+FROM bertoost/nginx:1.17.4-symfony
 
 LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
