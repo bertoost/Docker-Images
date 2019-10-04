@@ -1,4 +1,4 @@
-FROM php:7.1.30-fpm-stretch
+FROM php:7.1.32-fpm-stretch
 
 LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
