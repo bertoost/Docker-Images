@@ -1,0 +1,45 @@
+FROM bertoost/php:7.4.1-fpm
+
+LABEL maintainer="Bert Oost <boost@assuradeurengilde.nl>"
+
+USER root
+
+# Add-in dev PHP overrides
+COPY conf.d/php-dev.ini /usr/local/etc/php/conf.d/02-php-overrides.ini
+
+# xdebug
+RUN pecl install xdebug \
+    && docker-php-ext-enable xdebug
+
+COPY conf.d/pecl-xdebug.ini /usr/local/etc/php/conf.d/pecl-xdebug.ini
+
+# Install Blackfire
+RUN version=$(php -r "echo PHP_MAJOR_VERSION.PHP_MINOR_VERSION;") \
+    && curl -A "Docker" -o /tmp/blackfire-probe.tar.gz -D - -L -s https://blackfire.io/api/v1/releases/probe/php/linux/amd64/$version \
+    && mkdir -p /tmp/blackfire \
+    && tar zxpf /tmp/blackfire-probe.tar.gz -C /tmp/blackfire \
+    && mv /tmp/blackfire/blackfire-*.so $(php -r "echo ini_get('extension_dir');")/blackfire.so \
+    && printf "extension=blackfire.so\nblackfire.agent_socket=tcp://blackfire:8707\n" > $PHP_INI_DIR/conf.d/blackfire.ini \
+    && rm -rf /tmp/blackfire /tmp/blackfire-probe.tar.gz
+
+# Project binary files
+RUN mkdir -p /home/php/projects_bin \
+    && chown php:php /home/php/projects_bin
+COPY projects_bin /home/php/projects_bin/
+RUN chown php:php /home/php/projects_bin/* \
+    && mv /home/php/projects_bin/gitignore-dummy /home/php/projects_bin/.gitignore
+
+# Custom entrypoint
+COPY ./scripts/entrypoint-dev.sh /home/php/entrypoint.sh
+RUN chown php:php /home/php/entrypoint.sh \
+    && chmod +x /home/php/entrypoint.sh
+
+# Run commands inside this container as the created PHP user.
+USER php
+
+ENV BINARY_DIRECTORY "bin/"
+
+WORKDIR /var/www/html
+
+ENTRYPOINT ["/home/php/entrypoint.sh"]
+CMD ["php-fpm"]

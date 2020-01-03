@@ -1,0 +1,21 @@
+# Set defaults.
+defaults
+
+# Enable or disable TLS/SSL encryption.
+auth $SMTP_AUTH
+tls $SMTP_TLS
+tls_starttls $SMTP_STARTTLS
+tls_certcheck $SMTP_CERTCHECK
+tls_trust_file $SMTP_CERTLOCATION
+
+# Set up a default account's settings.
+account default
+add_missing_from_header on
+logfile /var/log/msmtp.log
+host "$SMTP_HOST"
+port $SMTP_PORT
+domain "$SMTP_DOMAIN"
+maildomain "$SMTP_DOMAIN"
+user "$SMTP_USER"
+password "$SMTP_PASS"
+from "root@docker.local"
