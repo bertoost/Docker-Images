@@ -1,4 +1,4 @@
-FROM mysql:8.0.17
+FROM mysql:8.0.18
 
 LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
