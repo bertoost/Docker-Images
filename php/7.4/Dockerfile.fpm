@@ -46,6 +46,7 @@ RUN apk add --no-cache --virtual .persistent-deps \
         # Local mail handling
         msmtp \
         # Imagick
+        imagemagick \
         imagemagick-dev \
         # Mysqldump via MariaDB client
         mariadb-client
@@ -117,6 +118,8 @@ ENV PHP_MAX_EXECUTION_TIME=120
 ENV PHP_MEMORY_LIMIT=256M
 ENV PHP_POST_MAX_SIZE=128M
 ENV PHP_UPLOAD_MAX_FILESIZE=128M
+
+ENV MAGICK_HOME=/usr
 
 WORKDIR /var/www/html
 
