@@ -1,4 +1,4 @@
-FROM php:7.4.1-fpm-alpine3.11
+FROM php:7.4.3-fpm-alpine3.11
 
 LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
@@ -79,10 +79,12 @@ RUN set -xe \
        APCu \
        ds \
        imagick-3.4.4 \
+       redis \
     && docker-php-ext-enable \
        apcu \
        ds \
        imagick \
+       redis \
     && apk del .build-deps \
     && rm -rf /tmp/*
 
