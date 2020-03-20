@@ -4,10 +4,6 @@ LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
 USER root
 
-# Create docker PHP user.
-RUN addgroup -g 1000 -S php \
-    && adduser -u 1000 -S php -G php
-
 # persistent / runtime depsfmusl
 ENV PHPIZE_DEPS \
     autoconf \
@@ -49,7 +45,9 @@ RUN apk add --no-cache --virtual .persistent-deps \
         imagemagick \
         imagemagick-dev \
         # Mysqldump via MariaDB client
-        mariadb-client
+        mariadb-client \
+        # Sudo necessary for PHP sockes
+        sudo
 
 RUN set -xe \
     && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
@@ -88,9 +86,16 @@ RUN set -xe \
     && apk del .build-deps \
     && rm -rf /tmp/*
 
+# Create docker PHP user.
+RUN addgroup -g 1000 -S php \
+    && adduser -u 1000 -S php -G php \
+    && echo "php ALL=NOPASSWD:SETENV: /usr/local/sbin/php-fpm" > /etc/sudoers.d/php \
+    && chmod 0440 /etc/sudoers.d/php
+
 # Use php's production ini & apply our own additional settings
 RUN cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini
 COPY conf.d/php-prod.ini /usr/local/etc/php/conf.d/01-php-overrides.ini
+COPY conf.d/php-fpm.conf /usr/local/etc/php-fpm.d/zzzz-app.conf
 
 # Composer
 RUN curl -sS https://getcomposer.org/installer | php -d memory_limit=-1 -- \
@@ -126,4 +131,4 @@ ENV MAGICK_HOME=/usr
 WORKDIR /var/www/html
 
 ENTRYPOINT ["/home/php/entrypoint.sh"]
-CMD ["php-fpm"]
+CMD ["sudo", "-E", "php-fpm"]

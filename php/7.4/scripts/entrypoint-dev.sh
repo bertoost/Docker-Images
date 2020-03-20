@@ -34,4 +34,4 @@ if [ "$1" ]; then
 fi
 
 # Run PHP-FPM at last
-php-fpm
+sudo -E php-fpm
