@@ -1,6 +1,9 @@
-FROM nginx:1.17.6-alpine
+FROM nginx:1.17.9-alpine
 
 LABEL maintainer="Bert Oost <hello@bertoost.com>"
+
+RUN addgroup -g 1000 -S app \
+    && adduser -u 1000 -S app -G app
 
 RUN apk add --no-cache bash gawk sed grep bc coreutils \
     && rm -rf /var/cache/apk/*
@@ -13,6 +16,7 @@ COPY defaults/nginx.conf /etc/nginx/nginx.conf
 COPY defaults/fastcgi_params /etc/nginx/fastcgi_params
 COPY defaults/overall_params.conf /etc/nginx/overall_params.conf
 COPY defaults/overall_ssl.conf /etc/nginx/overall_ssl.conf
+COPY defaults/project_root.conf /etc/nginx/project_root.conf
 COPY defaults/health_check.conf /etc/nginx/health_check.conf
 COPY defaults/partials/* /etc/nginx/conf.d/partials/
 

@@ -1,4 +1,4 @@
-FROM bertoost/nginx:1.17.6
+FROM bertoost/nginx:1.17.9
 
 LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
