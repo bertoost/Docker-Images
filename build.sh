@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 EXECUTEDIR=$(pwd)
 DOCKERFILE=""
@@ -7,9 +7,9 @@ DO_PUSH=false
 DO_FORCED=false
 IS_LATEST=false
 
-ENVFILE=$EXECUTEDIR/.env
+ENVFILE="${EXECUTEDIR}/.env"
 if [ -f $ENVFILE ]; then
-    export $(grep -v '^#' $ENVFILE | xargs)
+  . $ENVFILE
 fi
 
 if [ "$DOCKER_USERNAME" = "" ]; then

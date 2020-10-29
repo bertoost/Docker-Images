@@ -1,4 +1,4 @@
-FROM registry.oostdesign.com/tools/node:latest
+FROM bertoost/node:14.0.0
 
 LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
