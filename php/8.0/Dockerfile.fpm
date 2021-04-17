@@ -1,0 +1,129 @@
+FROM php:8.0.3-fpm-alpine3.13
+
+LABEL maintainer="Bert Oost <hello@bertoost.com>"
+
+ARG LOCAL_USER_ID=1000
+ARG LOCAL_GROUP_ID=1000
+
+USER root
+
+# persistent / runtime depsfmusl
+ENV PHPIZE_DEPS \
+    autoconf \
+    cmake \
+    file \
+    g++ \
+    gcc \
+    gettext-dev \
+    git \
+    libc-dev \
+    libzip-dev \
+    make \
+    pcre-dev \
+    pkgconf \
+    re2c
+
+RUN apk add --no-cache --virtual .persistent-deps \
+        autoconf \
+        g++ \
+        gcc \
+        gettext \
+        git \
+        icu-dev \
+        imagemagick \
+        imagemagick-dev \
+        libintl \
+        libxml2-dev \
+        libzip \
+        make \
+        mariadb-client \
+        msmtp \
+        musl-dev \
+        oniguruma-dev \
+        sudo \
+        yaml-dev
+
+RUN set -xe \
+    && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
+
+    # Imagick
+    && git clone https://github.com/Imagick/imagick \
+    && cd imagick \
+    && git checkout master \
+    && git pull \
+    && phpize && ./configure \
+    && make && make install \
+    && cd .. && rm -rf imagick \
+
+    && docker-php-ext-configure bcmath --enable-bcmath \
+    && docker-php-ext-configure intl --enable-intl \
+    && docker-php-ext-configure mbstring --enable-mbstring \
+    && docker-php-ext-configure pcntl --enable-pcntl \
+    && docker-php-ext-configure pdo_mysql --with-pdo-mysql \
+    && docker-php-ext-configure soap --enable-soap \
+    && docker-php-ext-install -j "$(nproc)" \
+        bcmath \
+        exif \
+        gettext \
+        intl \
+        mbstring \
+        opcache \
+        pcntl \
+        pdo_mysql \
+        shmop \
+        soap \
+        sockets \
+        sysvmsg \
+        sysvsem \
+        sysvshm \
+        zip \
+    && pecl install \
+       APCu \
+       ds \
+       redis \
+    && docker-php-ext-enable \
+       apcu \
+       ds \
+       imagick \
+       redis \
+    && apk del .build-deps \
+    && rm -rf /tmp/* /var/cache/apk/*
+
+# Create docker PHP user.
+RUN addgroup -g $LOCAL_GROUP_ID -S php \
+    && adduser -u $LOCAL_USER_ID -S php -G php \
+    && echo "php ALL=NOPASSWD:SETENV: /usr/local/sbin/php-fpm" > /etc/sudoers.d/php \
+    && chmod 0440 /etc/sudoers.d/php
+
+# Use php's production ini & apply our own additional settings
+RUN cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini
+COPY conf.d/php-prod.ini /usr/local/etc/php/conf.d/01-php-overrides.ini
+COPY conf.d/php-fpm.conf /usr/local/etc/php-fpm.d/zzzz-app.conf
+
+# Add composer and php scripts for aliases.
+COPY scripts/php /usr/local/sbin
+RUN chmod +x /usr/local/sbin/php
+
+# MSMTP mail config
+COPY conf.d/msmtprc.placeholder /home/php/msmtprc.placeholder
+
+# Custom entrypoint
+COPY ./scripts/entrypoint-prod.sh /home/php/entrypoint.sh
+RUN chown php:php /home/php/entrypoint.sh \
+    && chmod +x /home/php/entrypoint.sh
+
+# Run commands inside this container as the created PHP user.
+USER php
+
+ENV PHP_DATE_TIMEZONE=Europe/Amsterdam
+ENV PHP_MAX_EXECUTION_TIME=120
+ENV PHP_MEMORY_LIMIT=256M
+ENV PHP_POST_MAX_SIZE=128M
+ENV PHP_UPLOAD_MAX_FILESIZE=128M
+
+ENV MAGICK_HOME=/usr
+
+WORKDIR /var/www/html
+
+ENTRYPOINT ["/home/php/entrypoint.sh"]
+CMD ["sudo", "-E", "php-fpm"]
