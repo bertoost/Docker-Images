@@ -2,6 +2,9 @@ FROM php:7.4.16-fpm-alpine3.13
 
 LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
+ARG LOCAL_USER_ID=1000
+ARG LOCAL_GROUP_ID=1000
+
 USER root
 
 # persistent / runtime depsfmusl
@@ -11,68 +14,59 @@ ENV PHPIZE_DEPS \
     file \
     g++ \
     gcc \
-    libc-dev \
-    make \
-    git \
-    pkgconf \
-    re2c \
     gettext-dev \
+    git \
+    libc-dev \
+    libzip-dev \
+    make \
     pcre-dev \
-    libzip-dev
+    pkgconf \
+    re2c
 
 RUN apk add --no-cache --virtual .persistent-deps \
         autoconf \
         g++ \
         gcc \
-        git \
-        make \
-        oniguruma-dev \
-        # for intl extension
-        icu-dev \
-        # for soap
-        libxml2-dev \
-        # for yaml
-        yaml-dev \
-        # Gettext
-        musl-dev \
-        libintl \
         gettext \
-        # zipfiles
-        libzip \
-        # Local mail handling
-        msmtp \
-        # Imagick
+        git \
+        icu-dev \
         imagemagick \
         imagemagick-dev \
-        # Mysqldump via MariaDB client
+        libintl \
+        libxml2-dev \
+        libzip \
+        make \
         mariadb-client \
-        # Sudo necessary for PHP sockes
-        sudo
+        msmtp \
+        musl-dev \
+        oniguruma-dev \
+        sudo \
+        yaml-dev
 
 RUN set -xe \
     && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
     && docker-php-ext-configure bcmath --enable-bcmath \
     && docker-php-ext-configure intl --enable-intl \
+    && docker-php-ext-configure mbstring --enable-mbstring \
     && docker-php-ext-configure pcntl --enable-pcntl \
     && docker-php-ext-configure pdo_mysql --with-pdo-mysql \
-    && docker-php-ext-configure mbstring --enable-mbstring \
     && docker-php-ext-configure soap --enable-soap \
     && docker-php-ext-install -j "$(nproc)" \
         bcmath \
+        exif \
+        gettext \
         intl \
+        mbstring \
         opcache \
-        shmop \
         pcntl \
         pdo_mysql \
-        mbstring \
+        shmop \
         soap \
-        sysvmsg \
-        sysvshm \
-        sysvsem \
-        exif \
-        zip \
-        gettext \
         sockets \
+        sysvmsg \
+        sysvsem \
+        sysvshm \
+        zip \
     && pecl install \
        APCu \
        ds \
@@ -87,8 +81,8 @@ RUN set -xe \
     && rm -rf /tmp/*
 
 # Create docker PHP user.
-RUN addgroup -g 1000 -S php \
-    && adduser -u 1000 -S php -G php \
+RUN addgroup -g $LOCAL_GROUP_ID -S php \
+    && adduser -u $LOCAL_USER_ID -S php -G php \
     && echo "php ALL=NOPASSWD:SETENV: /usr/local/sbin/php-fpm" > /etc/sudoers.d/php \
     && chmod 0440 /etc/sudoers.d/php
 
@@ -97,17 +91,9 @@ RUN cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini
 COPY conf.d/php-prod.ini /usr/local/etc/php/conf.d/01-php-overrides.ini
 COPY conf.d/php-fpm.conf /usr/local/etc/php-fpm.d/zzzz-app.conf
 
-# Composer
-RUN curl -sS https://getcomposer.org/installer | php -d memory_limit=-1 -- \
-    --install-dir=/usr/local/bin \
-    --filename=composer \
-    && chmod +x /usr/local/bin/composer
-
 # Add composer and php scripts for aliases.
 COPY scripts/php /usr/local/sbin
-COPY scripts/composer /usr/local/sbin
-RUN chmod +x /usr/local/sbin/composer \
-             /usr/local/sbin/php
+RUN chmod +x /usr/local/sbin/php
 
 # MSMTP mail config
 COPY conf.d/msmtprc.placeholder /home/php/msmtprc.placeholder

@@ -7,6 +7,11 @@ USER root
 # Add-in dev PHP overrides
 COPY conf.d/php-dev.ini /usr/local/etc/php/conf.d/02-php-overrides.ini
 
+# Composer
+COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
+COPY scripts/composer /usr/local/sbin
+RUN chmod +x /usr/local/sbin/composer
+
 # xdebug
 RUN pecl install xdebug \
     && docker-php-ext-enable xdebug
