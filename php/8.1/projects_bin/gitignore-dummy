@@ -1,0 +1,5 @@
+# These files should be ignored by Git in any way
+.gitignore
+cli
+composer
+php
