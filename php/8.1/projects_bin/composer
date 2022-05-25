@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-docker exec -it CONTAINER_ID sh -c "composer $*"
+docker exec -e XDEBUG_MODE=off -it CONTAINER_ID sh -c "composer $*"
