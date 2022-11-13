@@ -1,4 +1,4 @@
-FROM bertoost/php:8.1.6-fpm
+FROM bertoost/php:8.1.12-fpm
 
 LABEL maintainer="Bert Oost <boost@assuradeurengilde.nl>"
 
