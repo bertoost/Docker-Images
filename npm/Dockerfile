@@ -1,4 +1,4 @@
-FROM node:18.2-alpine3.14
+FROM node:19.3-alpine3.17
 
 #RUN npm install react-scripts@5.0.1 -g --silent
 RUN apk add --update --no-cache python3  \
