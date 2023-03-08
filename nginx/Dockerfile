@@ -1,4 +1,4 @@
-FROM nginx:1.23.2-alpine
+FROM nginx:1.23.3-alpine AS base
 
 LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
@@ -31,3 +31,32 @@ EXPOSE 80
 EXPOSE 8888
 
 ENTRYPOINT [ "bash", "/usr/src/docker-entrypoint.sh" ]
+
+# ------------------------------
+
+FROM base AS dev
+RUN find /etc/nginx/conf.d/ -name "*.placeholder" -type f -delete
+COPY conf.d/dev/php73.conf /etc/nginx/conf.d/php73.placeholder
+COPY conf.d/dev/php74.conf /etc/nginx/conf.d/php74.placeholder
+COPY conf.d/dev/php80.conf /etc/nginx/conf.d/php80.placeholder
+COPY conf.d/dev/php81.conf /etc/nginx/conf.d/php81.placeholder
+
+FROM base AS craft
+RUN find /etc/nginx/conf.d/ -name "*.placeholder" -type f -delete
+COPY conf.d/craftcms.conf /etc/nginx/conf.d/default.conf
+
+FROM base AS laravel
+RUN find /etc/nginx/conf.d/ -name "*.placeholder" -type f -delete
+COPY conf.d/laravel.conf /etc/nginx/conf.d/default.conf
+
+FROM base AS modx
+RUN find /etc/nginx/conf.d/ -name "*.placeholder" -type f -delete
+COPY conf.d/modx.conf /etc/nginx/conf.d/default.conf
+
+FROM base AS symfony
+RUN find /etc/nginx/conf.d/ -name "*.placeholder" -type f -delete
+COPY conf.d/symfony.conf /etc/nginx/conf.d/default.conf
+
+FROM symfony AS symfony-dev
+RUN find /etc/nginx/conf.d/ -name "*.placeholder" -type f -delete
+COPY conf.d/symfony.development.conf /etc/nginx/conf.d/default.conf
