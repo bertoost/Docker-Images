@@ -1,6 +1,6 @@
-FROM php:8.1.12-fpm-alpine3.16
+FROM php:8.1.12-fpm-alpine3.16 AS base
 
-LABEL maintainer="Bert Oost <boost@assuradeurengilde.nl>"
+LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
 # PHP-FPM defaults
 ENV FCGI_CONNECT=/sock/fpm.sock
@@ -66,6 +66,7 @@ RUN apk add --no-cache --virtual .persistent-deps \
         gettext \
         git \
         icu \
+        icu-data-all \
         imap \
         imap-dev \
         imagemagick \
@@ -76,6 +77,7 @@ RUN apk add --no-cache --virtual .persistent-deps \
         libssh2 \
         libxslt \
         libzip \
+        linux-headers \
         make \
         mariadb-client \
         oniguruma-dev \
@@ -151,12 +153,17 @@ RUN set -xe \
     && docker-php-source delete \
     && rm -rf /tmp/*
 
+# Composer
+COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
+
+# -------------------------
+# PRODUCTION STAGE
+
+FROM base AS production
+
 # Use php's production ini & apply our own additional settings
 COPY conf.d/php-prod.ini /usr/local/etc/php/conf.d/zzz-php-overrides.ini
 COPY conf.d/php-fpm.conf /usr/local/etc/php-fpm.d/zzz-app.conf
-
-# Composer
-COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
 # Add PHP scripts for aliases.
 COPY scripts/php /usr/local/sbin
@@ -176,4 +183,76 @@ ENV LC_ALL nl_NL.UTF-8
 
 WORKDIR /var/www/html
 
+CMD ["php-fpm"]
+
+# -------------------------
+# DEVELOPMENT STAGE
+
+FROM production AS development
+
+ENV PHP_OPCACHE_VALIDATE_TIMESTAMPS=1
+
+USER root
+
+RUN apk add --no-cache --virtual . \
+    # Local mail handling
+    msmtp
+
+# xdebug
+RUN set -xe \
+    && apk add --no-cache --virtual .build-deps \
+       $PHPIZE_DEPS \
+    && pecl install \
+       xdebug \
+    && docker-php-ext-enable \
+       xdebug \
+    && apk del .build-deps \
+    && docker-php-source delete \
+    # Install Blackfire
+    && version=$(php -r "echo PHP_MAJOR_VERSION.PHP_MINOR_VERSION;") \
+    && architecture=$(case $(uname -m) in i386 | i686 | x86) echo "i386" ;; x86_64 | amd64) echo "amd64" ;; aarch64 | arm64 | armv8) echo "arm64" ;; *) echo "amd64" ;; esac) \
+    && curl -A "Docker" -o /tmp/blackfire-probe.tar.gz -D - -L -s https://blackfire.io/api/v1/releases/probe/php/alpine/$architecture/$version \
+    && mkdir -p /tmp/blackfire \
+    && tar zxpf /tmp/blackfire-probe.tar.gz -C /tmp/blackfire \
+    && mv /tmp/blackfire/blackfire-*.so $(php -r "echo ini_get('extension_dir');")/blackfire.so \
+    && printf "extension=blackfire.so\nblackfire.agent_socket=tcp://blackfire:8307\n" > $PHP_INI_DIR/conf.d/blackfire.ini \
+    && rm -rf /tmp/blackfire /tmp/blackfire-probe.tar.gz \
+    && mkdir -p /tmp/blackfire \
+    && architecture=$(case $(uname -m) in i386 | i686 | x86) echo "i386" ;; x86_64 | amd64) echo "amd64" ;; aarch64 | arm64 | armv8) echo "arm64" ;; *) echo "amd64" ;; esac) \
+    && curl -A "Docker" -L https://blackfire.io/api/v1/releases/cli/linux/$architecture | tar zxp -C /tmp/blackfire \
+    && mv /tmp/blackfire/blackfire /usr/bin/blackfire \
+    && rm -Rf /tmp/blackfire \
+    && rm -rf /tmp/*
+
+# Add-in dev PHP overrides
+COPY conf.d/php-dev.ini /usr/local/etc/php/conf.d/zzzz-php-overrides.ini
+COPY conf.d/pecl-xdebug.ini /usr/local/etc/php/conf.d/pecl-xdebug.ini
+
+# Project binary files
+RUN mkdir -p /home/php/projects_bin \
+    && chown php:php /home/php/projects_bin
+COPY projects_bin /home/php/projects_bin/
+RUN chown php:php /home/php/projects_bin/* \
+    && mv /home/php/projects_bin/gitignore-dummy /home/php/projects_bin/.gitignore
+
+# Custom entrypoint
+COPY ./scripts/entrypoint-dev.sh /home/php/entrypoint.sh
+RUN chown php:php /home/php/entrypoint.sh \
+    && chmod +x /home/php/entrypoint.sh
+
+# MSMTP mail config
+COPY conf.d/msmtprc.placeholder /home/php/msmtprc.placeholder
+
+RUN mkdir -p /sock \
+    && chown php:php /sock
+
+# Run commands inside this container as the created PHP user.
+USER php
+
+ENV BINARY_DIRECTORY "bin/"
+ENV XDEBUG_MODE develop,debug
+
+WORKDIR /var/www/html
+
+ENTRYPOINT ["/home/php/entrypoint.sh"]
 CMD ["php-fpm"]
