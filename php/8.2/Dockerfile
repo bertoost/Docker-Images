@@ -1,4 +1,5 @@
-FROM php:8.2.3-fpm-alpine3.17 AS base
+ARG ARCH
+FROM ${ARCH}php:8.2.3-fpm-alpine3.17 AS base
 LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
 # PHP-FPM defaults

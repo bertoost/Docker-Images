@@ -1,16 +1,8 @@
-FROM mysql:8.0.32
+ARG ARCH
+FROM ${ARCH}mysql:8.0.32
 
 LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
-RUN apt-get update \
-    && apt-get install -y rename \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get purge -y --auto-remove
-
-COPY conf.d/* /etc/mysql/temp/
+COPY conf.d/default.conf /etc/mysql/conf.d/default.cnf
+COPY conf.d/sql-mode.conf /etc/mysql/conf.d/sql-mode.cnf
 COPY custom/* /etc/mysql/temp/
-
-# Rename temp files to .cnf + copy to conf.d/ directory (since that one is loaded)
-RUN cd /etc/mysql/temp \
-    && rename "s/\.conf/\.cnf/" *.conf \
-    && cp /etc/mysql/temp/*.cnf /etc/mysql/conf.d/

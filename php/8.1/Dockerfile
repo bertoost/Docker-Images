@@ -1,4 +1,5 @@
-FROM php:8.1.12-fpm-alpine3.16 AS base
+ARG ARCH
+FROM ${ARCH}php:8.1.17-fpm-alpine3.17 AS base
 
 LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
@@ -66,7 +67,7 @@ RUN apk add --no-cache --virtual .persistent-deps \
         gettext \
         git \
         icu \
-        icu-data-all \
+        icu-data-full \
         imap \
         imap-dev \
         imagemagick \

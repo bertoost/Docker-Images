@@ -1,4 +1,6 @@
-FROM node:19.7-alpine3.17
+ARG ARCH
+FROM ${ARCH}node:19.7-alpine3.17
+
 LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
 RUN apk add --update --no-cache python3  \

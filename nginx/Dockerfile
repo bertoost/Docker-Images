@@ -1,4 +1,5 @@
-FROM nginx:1.23.3-alpine AS base
+ARG ARCH
+FROM ${ARCH}nginx:1.23.3-alpine AS base
 
 LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
