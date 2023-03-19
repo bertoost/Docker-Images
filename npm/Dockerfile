@@ -8,7 +8,7 @@ RUN apk add --update --no-cache python3  \
     && python3 -m ensurepip \
     && pip3 install --no-cache --upgrade pip setuptools \
     # install latest updates
-    && npm install -g npm@latest \
+    && npm install -g npm@latest sharp \
     # Cleanup
     && apk --no-cache -U upgrade \
     && rm -rf /tmp/*
