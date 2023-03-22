@@ -1,5 +1,5 @@
 ARG ARCH
-FROM ${ARCH}php:8.2.3-fpm-alpine3.17 AS base
+FROM ${ARCH}php:8.2.4-fpm-alpine3.17 AS base
 LABEL maintainer="Bert Oost <hello@bertoost.com>"
 
 # PHP-FPM defaults
@@ -245,6 +245,7 @@ USER php
 
 ENV BINARY_DIRECTORY "bin/"
 ENV XDEBUG_MODE develop,debug
+ENV XDEBUG_PORT 9003
 
 WORKDIR /var/www/html
 
